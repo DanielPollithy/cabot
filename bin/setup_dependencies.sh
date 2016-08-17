@@ -51,6 +51,7 @@ packages=(
   'build-essential'
   'redis-server'
   'libpq-dev'
+  'ruby'
   'libxml2-dev'
   'libxslt-dev'
   'nodejs'
@@ -58,27 +59,10 @@ packages=(
   'postgresql'
   'nginx'
   'htop'
-  'libsasl2-dev'
-  'libldap2-dev'
 )
 
 sudo apt-get update
 sudo apt-get install --quiet --assume-yes ${packages[*]}
-
-# install ruby if it's not installed
-if ! which ruby; then
-  sudo apt-get install -y ruby1.9.3
-fi
-
-# install rubygems if it's not included in ruby
-if ! which gem; then
-  sudo apt-get install -y rubygems
-fi
-
-# symlink node to nodejs for 14.04 compatibility
-if ! which node && which nodejs; then
-  sudo ln -s `which nodejs` /usr/bin/node
-fi
 set +e
 sudo pip install -U pip # upgrade pip
 set -e
@@ -87,7 +71,7 @@ sudo pip install -U pip --no-use-wheel # Don't ask
 # install coffee and less
 sudo npm install -g coffee-script less@1.3 --registry http://registry.npmjs.org/
 
-sudo gem install foreman --version 0.77.0
+sudo gem install foreman
 
 # Set redis pass
 set +e
@@ -139,7 +123,7 @@ if [ -e /etc/nginx/sites-available/cabot ]; then
 fi
 sudo tee /etc/nginx/sites-available/cabot << EOF
 server {
-  listen 80;
+  listen 8080;
 
   location / {
     proxy_pass http://localhost:5000/;
@@ -172,7 +156,7 @@ server {
 #   }
 
 #   location /static/ {
-#     alias /home/ubuntu/cabot/static/;
+#     alias $DEPLOY_PATH/static/;
 #   }
 # }
 EOF

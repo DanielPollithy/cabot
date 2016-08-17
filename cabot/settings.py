@@ -1,9 +1,5 @@
 import os
 import dj_database_url
-import re
-from django.conf import settings
-from cabot.celeryconfig import *
-from cabot.cabot_config import *
 
 settings_dir = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.abspath(settings_dir)
@@ -15,9 +11,6 @@ ADMINS = (
 )
 
 MANAGERS = ADMINS
-
-if os.environ.get('CABOT_FROM_EMAIL'):
-    DEFAULT_FROM_EMAIL = os.environ['CABOT_FROM_EMAIL']
 
 DATABASES = {'default': dj_database_url.parse(os.environ["DATABASE_URL"])}
 
@@ -64,7 +57,8 @@ MEDIA_URL = '/media/'
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-STATIC_ROOT = os.path.join(PROJECT_ROOT, os.path.pardir, 'static/')
+STATIC_ROOT = os.environ.get('STATIC_ROOT',
+                             os.path.join(PROJECT_ROOT, os.pardir, 'static/'))
 
 COMPRESS_ROOT = STATIC_ROOT
 
@@ -73,7 +67,9 @@ COMPRESS_ROOT = STATIC_ROOT
 STATIC_URL = '/static/'
 
 # Additional locations of static files
-STATICFILES_DIRS = [os.path.join(PROJECT_ROOT, 'static')]
+STATICFILES_DIRS = (
+    os.path.join(PROJECT_ROOT, 'static'),
+)
 
 # List of finder classes that know how to find static files in
 # various locations.
@@ -99,6 +95,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.transaction.TransactionMiddleware',
 )
 
 ROOT_URLCONF = 'cabot.urls'
@@ -122,19 +119,13 @@ INSTALLED_APPS = (
     'compressor',
     'polymorphic',
     'djcelery',
+    'mptt',
     'jsonify',
     'cabot.cabotapp',
-    'rest_framework',
 )
 
-# Load additional apps from configuration file
-CABOT_PLUGINS_ENABLED_PARSED = []
-for plugin in CABOT_PLUGINS_ENABLED.split(","):
-    # Hack to clean up if versions of plugins specified
-    exploded = re.split(r'[<>=]+', plugin)
-    CABOT_PLUGINS_ENABLED_PARSED.append(exploded[0])
+SESSION_COOKIE_AGE = 3600
 
-INSTALLED_APPS += tuple(CABOT_PLUGINS_ENABLED_PARSED)
 
 COMPRESS_PRECOMPILERS = (
     ('text/coffeescript', 'coffee --compile --stdio'),
@@ -147,8 +138,7 @@ EMAIL_HOST = os.environ.get('SES_HOST', 'localhost')
 EMAIL_PORT = int(os.environ.get('SES_PORT', 25))
 EMAIL_HOST_USER = os.environ.get('SES_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('SES_PASS', '')
-EMAIL_BACKEND = os.environ.get('SES_BACKEND', 'django_smtp_ssl.SSLEmailBackend')
-EMAIL_USE_TLS = os.environ.get('SES_USE_TLS', 0)
+EMAIL_BACKEND = 'django_smtp_ssl.SSLEmailBackend'
 
 COMPRESS_OFFLINE = not DEBUG
 
@@ -224,27 +214,5 @@ LOGGING = {
     }
 }
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.DjangoModelPermissions',
-    ],
-    'DEFAULT_FILTER_BACKENDS': [
-        'rest_framework.filters.DjangoFilterBackend',
-        'rest_framework.filters.OrderingFilter',
-    ]
-}
-
-AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend',
-)
-AUTH_LDAP = os.environ.get('AUTH_LDAP', 'false')
-
-if AUTH_LDAP.lower() == "true":
-    from settings_ldap import *
-    AUTHENTICATION_BACKENDS += tuple(['django_auth_ldap.backend.LDAPBackend'])
-
-EXPOSE_USER_API = os.environ.get('EXPOSE_USER_API', False)
+from cabot.celeryconfig import *
+from cabot.cabot_config import *
